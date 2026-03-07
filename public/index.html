@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ich hab noch nie – Das Spiel 🎉</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ===== LANDING / ROOM LIST ===== -->
+  <div id="screen-landing" class="screen active">
+    <header>
+      <h1>🎉 Ich hab noch nie</h1>
+      <p class="subtitle">Das ultimative Partyspiel</p>
+    </header>
+
+    <div class="container">
+      <div class="actions-bar">
+        <button id="btn-create-room" class="btn btn-primary">➕ Raum erstellen</button>
+      </div>
+
+      <h2>Verfügbare Räume</h2>
+      <div id="room-list" class="room-list">
+        <p class="empty-hint">Keine Räume vorhanden. Erstelle einen neuen Raum!</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== LOBBY ===== -->
+  <div id="screen-lobby" class="screen">
+    <header>
+      <h1 id="lobby-room-name">Raum</h1>
+      <div id="lobby-badge" class="badge"></div>
+    </header>
+
+    <div class="container lobby-layout">
+      <!-- Player list -->
+      <section class="card">
+        <h2>Spieler <span id="lobby-player-count" class="count-badge">0</span></h2>
+        <ul id="lobby-player-list" class="player-list"></ul>
+        <!-- Own name change -->
+        <div id="own-name-section" class="own-name-section">
+          <h3>Dein Name ändern</h3>
+          <div class="input-row">
+            <input type="text" id="input-own-name" placeholder="Neuer Name" maxlength="24" />
+            <button id="btn-change-own-name" class="btn btn-secondary">Ändern</button>
+          </div>
+          <p id="own-name-error" class="error-msg"></p>
+        </div>
+      </section>
+
+      <!-- Admin panel (only visible to admin) -->
+      <section id="admin-panel" class="card admin-panel hidden">
+        <h2>⚙️ Admin-Panel</h2>
+
+        <div class="admin-section">
+          <h3>Raum-Einstellungen</h3>
+          <div class="input-row">
+            <input type="text" id="admin-room-name" placeholder="Raumname" maxlength="32" />
+          </div>
+          <div class="input-row">
+            <select id="admin-category">
+              <option value="under12">👶 Bis 12 Jahre</option>
+              <option value="under16">🧒 Bis 16 Jahre</option>
+              <option value="18plus">🔞 Ab 18 Jahre</option>
+            </select>
+          </div>
+          <button id="btn-update-room" class="btn btn-secondary">💾 Speichern</button>
+          <p id="update-room-error" class="error-msg"></p>
+        </div>
+
+        <div class="admin-section">
+          <h3>Spieler verwalten</h3>
+          <ul id="admin-player-list" class="player-list admin-player-list"></ul>
+          <p id="admin-player-error" class="error-msg"></p>
+        </div>
+
+        <div class="admin-section danger-zone">
+          <h3>Gefahrenzone</h3>
+          <button id="btn-delete-room" class="btn btn-danger">🗑️ Raum löschen</button>
+        </div>
+
+        <div class="admin-section">
+          <button id="btn-start-game" class="btn btn-primary btn-large">▶️ Spiel starten</button>
+          <p id="start-game-error" class="error-msg"></p>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- ===== GAME SCREEN ===== -->
+  <div id="screen-game" class="screen">
+    <header>
+      <h1 id="game-room-name">Raum</h1>
+      <div id="game-badge" class="badge"></div>
+    </header>
+
+    <div class="container game-layout">
+      <div class="question-card" id="question-card">
+        <div class="question-counter" id="question-counter">Frage 1 / 30</div>
+        <div class="question-text" id="question-text">Lade Frage…</div>
+        <div class="reaction-buttons" id="reaction-buttons">
+          <button id="btn-done" class="btn btn-reaction btn-done">✅ Ich habe das gemacht!</button>
+          <button id="btn-not-done" class="btn btn-reaction btn-not-done">❌ Ich habe das NICHT gemacht!</button>
+        </div>
+        <p id="reaction-hint" class="reaction-hint"></p>
+      </div>
+
+      <div class="reactions-overview card" id="reactions-overview">
+        <h3>Reaktionen</h3>
+        <ul id="reactions-list" class="reactions-list"></ul>
+      </div>
+
+      <!-- Admin game controls -->
+      <div id="admin-game-controls" class="admin-game-controls hidden">
+        <button id="btn-next-question" class="btn btn-primary">➡️ Nächste Frage</button>
+        <button id="btn-end-game" class="btn btn-secondary">🏁 Spiel beenden</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== FINISHED SCREEN ===== -->
+  <div id="screen-finished" class="screen">
+    <header>
+      <h1>🏆 Spiel beendet!</h1>
+    </header>
+    <div class="container center">
+      <p class="big-text">Das war's für diese Runde!</p>
+      <div id="admin-finished-controls" class="hidden">
+        <button id="btn-play-again" class="btn btn-primary btn-large">🔄 Nochmal spielen</button>
+        <button id="btn-back-to-lobby-finished" class="btn btn-secondary">🏠 Zur Lobby</button>
+      </div>
+      <div id="player-finished-hint">
+        <p>Warte auf den Admin…</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODALS ===== -->
+
+  <!-- Create Room Modal -->
+  <div id="modal-create-room" class="modal-overlay hidden">
+    <div class="modal">
+      <h2>Neuen Raum erstellen</h2>
+      <div class="form-group">
+        <label>Raumname</label>
+        <input type="text" id="create-room-name" placeholder="z.B. Partykeller 🎉" maxlength="32" />
+      </div>
+      <div class="form-group">
+        <label>Kategorie</label>
+        <select id="create-category">
+          <option value="under12">👶 Bis 12 Jahre</option>
+          <option value="under16">🧒 Bis 16 Jahre</option>
+          <option value="18plus">🔞 Ab 18 Jahre</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Dein Name (Admin)</label>
+        <input type="text" id="create-player-name" placeholder="Dein Name" maxlength="24" />
+      </div>
+      <p id="create-room-error" class="error-msg"></p>
+      <div class="modal-actions">
+        <button id="btn-create-room-confirm" class="btn btn-primary">🚀 Erstellen</button>
+        <button id="btn-create-room-cancel" class="btn btn-ghost">Abbrechen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Join Room Modal -->
+  <div id="modal-join-room" class="modal-overlay hidden">
+    <div class="modal">
+      <h2>Raum beitreten</h2>
+      <p id="join-room-title" class="modal-subtitle"></p>
+      <div class="form-group">
+        <label>Dein Name</label>
+        <input type="text" id="join-player-name" placeholder="Dein Name" maxlength="24" />
+      </div>
+      <p id="join-room-error" class="error-msg"></p>
+      <div class="modal-actions">
+        <button id="btn-join-room-confirm" class="btn btn-primary">🎮 Beitreten</button>
+        <button id="btn-join-room-cancel" class="btn btn-ghost">Abbrechen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Change Player Name Modal (Admin) -->
+  <div id="modal-change-name" class="modal-overlay hidden">
+    <div class="modal">
+      <h2>Spieler umbenennen</h2>
+      <p id="change-name-player-label" class="modal-subtitle"></p>
+      <div class="form-group">
+        <label>Neuer Name</label>
+        <input type="text" id="change-name-input" placeholder="Neuer Name" maxlength="24" />
+      </div>
+      <p id="change-name-error" class="error-msg"></p>
+      <div class="modal-actions">
+        <button id="btn-change-name-confirm" class="btn btn-primary">💾 Speichern</button>
+        <button id="btn-change-name-cancel" class="btn btn-ghost">Abbrechen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast notification -->
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
