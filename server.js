@@ -251,7 +251,7 @@ io.on('connection', (socket) => {
   socket.on('changeOwnName', ({ roomId, newName }, callback) => {
     const room = rooms[roomId];
     if (!room) return callback({ error: 'Raum nicht gefunden.' });
-    if (room.state !== 'lobby') return callback({ error: 'Name kann nur im Warteraum geändert werden.' });
+    if (!['lobby', 'playing'].includes(room.state)) return callback({ error: 'Name kann jetzt nicht geändert werden.' });
 
     const playerId = socket.data.playerId;
     const player = room.players.find((p) => p.id === playerId);
@@ -396,7 +396,36 @@ io.on('connection', (socket) => {
     callback({ success: true });
   });
 
-  // Handle disconnect
+  // Rejoin room after page reload / temporary disconnect
+  socket.on('rejoinRoom', ({ roomId, playerId }, callback) => {
+    const room = rooms[roomId];
+    if (!room) return callback({ error: 'Raum nicht gefunden.' });
+
+    const player = room.players.find((p) => p.id === playerId);
+    if (!player) return callback({ error: 'Spieler nicht mehr im Raum.' });
+
+    // Cancel pending disconnect timer if any
+    if (room.disconnectTimers && room.disconnectTimers[playerId]) {
+      clearTimeout(room.disconnectTimers[playerId]);
+      delete room.disconnectTimers[playerId];
+    }
+
+    // Update socket references
+    player.socketId = socket.id;
+    if (room.adminPlayerId === playerId) {
+      room.adminSocketId = socket.id;
+    }
+
+    socket.join(roomId);
+    socket.data.roomId = roomId;
+    socket.data.playerId = playerId;
+
+    emitRoomUpdate(roomId);
+    io.emit('roomList', getRoomList());
+    callback({ success: true, room: sanitizeRoom(room) });
+  });
+
+  // Handle disconnect – grace period of 10 s to allow page reloads / reconnects
   socket.on('disconnect', () => {
     const roomId = socket.data.roomId;
     const playerId = socket.data.playerId;
@@ -405,31 +434,42 @@ io.on('connection', (socket) => {
     const room = rooms[roomId];
     if (!room) return;
 
-    // If admin disconnects, delete room
-    if (room.adminPlayerId === playerId) {
-      io.to(roomId).emit('roomDeleted', {
-        roomId,
-        message: 'Der Admin hat die Verbindung verloren. Raum wurde geschlossen.',
-      });
-      room.players.forEach((p) => {
-        const s = io.sockets.sockets.get(p.socketId);
-        if (s && s.id !== socket.id) {
-          s.leave(roomId);
-          s.data.roomId = null;
-          s.data.playerId = null;
-        }
-      });
-      delete rooms[roomId];
-    } else {
-      // Regular player disconnects: remove from room
-      room.players = room.players.filter((p) => p.id !== playerId);
-      if (room.reactions && room.reactions[playerId]) {
-        delete room.reactions[playerId];
-      }
-      emitRoomUpdate(roomId);
-    }
+    // If the player already rejoined with a new socket (page reload), skip.
+    const player = room.players.find((p) => p.id === playerId);
+    if (player && player.socketId !== socket.id) return;
 
-    io.emit('roomList', getRoomList());
+    if (!room.disconnectTimers) room.disconnectTimers = {};
+
+    room.disconnectTimers[playerId] = setTimeout(() => {
+      const r = rooms[roomId];
+      if (!r) return; // room was already deleted
+
+      delete r.disconnectTimers[playerId];
+
+      if (r.adminPlayerId === playerId) {
+        io.to(roomId).emit('roomDeleted', {
+          roomId,
+          message: 'Der Admin hat die Verbindung verloren. Raum wurde geschlossen.',
+        });
+        r.players.forEach((p) => {
+          const s = io.sockets.sockets.get(p.socketId);
+          if (s) {
+            s.leave(roomId);
+            s.data.roomId = null;
+            s.data.playerId = null;
+          }
+        });
+        delete rooms[roomId];
+      } else {
+        r.players = r.players.filter((p) => p.id !== playerId);
+        if (r.reactions && r.reactions[playerId]) {
+          delete r.reactions[playerId];
+        }
+        emitRoomUpdate(roomId);
+      }
+
+      io.emit('roomList', getRoomList());
+    }, 10000);
   });
 });
 

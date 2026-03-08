@@ -38,6 +38,34 @@ const state = {
   room: null,
 };
 
+// ── Session persistence (survives page reload) ───────────────
+socket.on('connect', () => {
+  const savedRoomId = sessionStorage.getItem('nhh_roomId');
+  const savedPlayerId = sessionStorage.getItem('nhh_playerId');
+  if (!savedRoomId || !savedPlayerId) return;
+
+  socket.emit('rejoinRoom', { roomId: savedRoomId, playerId: savedPlayerId }, (res) => {
+    if (res.error) {
+      sessionStorage.removeItem('nhh_roomId');
+      sessionStorage.removeItem('nhh_playerId');
+      return;
+    }
+    state.roomId = savedRoomId;
+    state.playerId = savedPlayerId;
+    state.isAdmin = res.room.adminPlayerId === savedPlayerId;
+    state.room = res.room;
+    if (res.room.state === 'lobby') {
+      enterLobby(res.room);
+    } else if (res.room.state === 'playing') {
+      renderGame(res.room);
+      showScreen('game');
+    } else if (res.room.state === 'finished') {
+      renderFinished();
+      showScreen('finished');
+    }
+  });
+});
+
 // ── Screens ─────────────────────────────────────────────────
 const screens = {
   landing: document.getElementById('screen-landing'),
@@ -157,6 +185,8 @@ function createRoom() {
     state.playerId = res.playerId;
     state.isAdmin = true;
     state.room = res.room;
+    sessionStorage.setItem('nhh_roomId', res.roomId);
+    sessionStorage.setItem('nhh_playerId', res.playerId);
     enterLobby(res.room);
   });
 }
@@ -197,6 +227,8 @@ function joinRoom() {
     state.playerId = res.playerId;
     state.isAdmin = res.room.adminPlayerId === res.playerId;
     state.room = res.room;
+    sessionStorage.setItem('nhh_roomId', res.roomId);
+    sessionStorage.setItem('nhh_playerId', res.playerId);
     if (res.room.state === 'playing') {
       renderGame(res.room);
       showScreen('game');
@@ -243,14 +275,17 @@ function renderLobby(room) {
 
   // Admin panel
   const adminPanel = document.getElementById('admin-panel');
+  const leaveCard = document.getElementById('leave-room-card');
   if (state.isAdmin) {
     adminPanel.classList.remove('hidden');
     document.getElementById('admin-room-name').value = room.name;
     document.getElementById('admin-category').value = room.category;
     document.getElementById('admin-allow-join-during-game').checked = !!room.allowJoinDuringGame;
     renderAdminPlayerList(room);
+    leaveCard.classList.add('hidden');
   } else {
     adminPanel.classList.add('hidden');
+    leaveCard.classList.remove('hidden');
   }
 }
 
@@ -492,11 +527,82 @@ function renderGame(room) {
     return `<li class="reaction-item">${icon}<span class="r-name">${escHtml(p.name)}</span><span style="color:var(--text-muted);font-size:0.85rem">${label}</span></li>`;
   }).join('');
 
-  // Admin controls
-  const adminControls = document.getElementById('admin-game-controls');
-  if (state.isAdmin) adminControls.classList.remove('hidden');
-  else adminControls.classList.add('hidden');
+  // Own name prefill
+  const me = room.players.find((p) => p.id === state.playerId);
+  if (me) document.getElementById('input-own-name-game').value = me.name;
+
+  // Admin-only controls
+  const adminSettings = document.getElementById('game-admin-settings');
+  const nextWrap = document.getElementById('btn-next-question-wrap');
+  const endGameBtn = document.getElementById('btn-end-game');
+  if (state.isAdmin) {
+    adminSettings.classList.remove('hidden');
+    nextWrap.classList.remove('hidden');
+    endGameBtn.classList.remove('hidden');
+    document.getElementById('game-allow-join-during-game').checked = !!room.allowJoinDuringGame;
+    renderAdminPlayerListGame(room);
+  } else {
+    adminSettings.classList.add('hidden');
+    nextWrap.classList.add('hidden');
+    endGameBtn.classList.add('hidden');
+  }
 }
+
+function renderAdminPlayerListGame(room) {
+  const list = document.getElementById('admin-player-list-game');
+  list.innerHTML = room.players.map((p) => {
+    const isAdmin = p.id === room.adminPlayerId;
+    const adminBadge = isAdmin ? ' 👑' : '';
+    const actions = isAdmin ? '' : `
+      <button class="btn btn-icon btn-danger kick-player-btn"
+        data-player-id="${escHtml(p.id)}"
+        data-player-name="${escHtml(p.name)}">🚫</button>`;
+    return `<li class="player-item">
+      <span class="player-name">${escHtml(p.name)}${adminBadge}</span>
+      ${actions}
+    </li>`;
+  }).join('');
+}
+
+document.getElementById('admin-player-list-game').addEventListener('click', (e) => {
+  const kickBtn = e.target.closest('.kick-player-btn');
+  if (kickBtn) kickPlayer(kickBtn.dataset.playerId, kickBtn.dataset.playerName);
+});
+
+// Own name change in game screen
+document.getElementById('btn-change-own-name-game').addEventListener('click', changeOwnNameGame);
+document.getElementById('input-own-name-game').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') changeOwnNameGame();
+});
+
+function changeOwnNameGame() {
+  const newName = document.getElementById('input-own-name-game').value.trim();
+  if (!newName) return setError('own-name-game-error', 'Name darf nicht leer sein.');
+  socket.emit('changeOwnName', { roomId: state.roomId, newName }, (res) => {
+    if (res.error) return setError('own-name-game-error', res.error);
+    clearError('own-name-game-error');
+    showToast('Name geändert!', 'success');
+  });
+}
+
+// Settings panel toggle
+document.getElementById('btn-toggle-settings').addEventListener('click', () => {
+  const panel = document.getElementById('game-settings-panel');
+  const btn = document.getElementById('btn-toggle-settings');
+  const isOpen = !panel.classList.contains('hidden');
+  panel.classList.toggle('hidden', isOpen);
+  btn.textContent = isOpen ? '⚙️ Einstellungen' : '✖️ Einstellungen schließen';
+});
+
+// Admin: update room settings mid-game (allow join during game)
+document.getElementById('btn-update-room-game').addEventListener('click', () => {
+  const allowJoinDuringGame = document.getElementById('game-allow-join-during-game').checked;
+  socket.emit('updateRoom', { roomId: state.roomId, allowJoinDuringGame }, (res) => {
+    if (res.error) return setError('update-room-game-error', res.error);
+    clearError('update-room-game-error');
+    showToast('Einstellungen gespeichert!', 'success');
+  });
+});
 
 // Reaction buttons
 document.getElementById('btn-done').addEventListener('click', () => {
@@ -585,6 +691,8 @@ function resetState() {
   state.playerId = null;
   state.isAdmin = false;
   state.room = null;
+  sessionStorage.removeItem('nhh_roomId');
+  sessionStorage.removeItem('nhh_playerId');
 }
 
 // ── Init ─────────────────────────────────────────────────────

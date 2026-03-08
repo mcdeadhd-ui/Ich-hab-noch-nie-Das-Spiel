@@ -11,7 +11,7 @@
   <!-- ===== LANDING / ROOM LIST ===== -->
   <div id="screen-landing" class="screen active">
     <header>
-      <h1>🎉 Ich hab noch nie</h1>
+      <h1>Ich hab noch nie – Das Spiel</h1>
       <p class="subtitle">Das ultimative Partyspiel</p>
     </header>
 
@@ -92,7 +92,7 @@
         </div>
       </section>
 
-      <section class="card leave-room-card">
+      <section id="leave-room-card" class="card leave-room-card">
         <h2>Raum verlassen</h2>
         <p class="subtitle">Du kannst den Raum jederzeit verlassen.</p>
         <button id="btn-leave-room-lobby" class="btn btn-danger">🚪 Raum verlassen</button>
@@ -109,6 +109,8 @@
     </header>
 
     <div class="container game-layout">
+
+      <!-- Question Card -->
       <div class="question-card" id="question-card">
         <div class="question-counter" id="question-counter">Frage 1 / 30</div>
         <div class="question-text" id="question-text">Lade Frage…</div>
@@ -117,20 +119,57 @@
           <button id="btn-not-done" class="btn btn-reaction btn-not-done">❌ Ich habe das NICHT gemacht!</button>
         </div>
         <p id="reaction-hint" class="reaction-hint"></p>
+        <div id="btn-next-question-wrap" class="next-question-wrap hidden">
+          <button id="btn-next-question" class="btn btn-primary">➡️ Nächste Frage</button>
+        </div>
       </div>
 
+      <!-- Reactions Overview -->
       <div class="reactions-overview card" id="reactions-overview">
         <h3>Reaktionen</h3>
         <ul id="reactions-list" class="reactions-list"></ul>
       </div>
 
-      <!-- Admin game controls -->
-      <div id="admin-game-controls" class="admin-game-controls hidden">
-        <button id="btn-next-question" class="btn btn-primary">➡️ Nächste Frage</button>
-        <button id="btn-end-game" class="btn btn-secondary">🏁 Spiel beenden</button>
+      <!-- Einstellungen (collapsible) -->
+      <div class="game-settings-wrap">
+        <button id="btn-toggle-settings" class="btn btn-secondary btn-block">⚙️ Einstellungen</button>
+        <div id="game-settings-panel" class="card game-settings-panel hidden">
+
+          <div class="settings-section">
+            <h3>Dein Name ändern</h3>
+            <div class="input-row">
+              <input type="text" id="input-own-name-game" placeholder="Neuer Name" maxlength="24" />
+              <button id="btn-change-own-name-game" class="btn btn-secondary">Ändern</button>
+            </div>
+            <p id="own-name-game-error" class="error-msg"></p>
+          </div>
+
+          <div id="game-admin-settings" class="hidden">
+            <div class="settings-section">
+              <h3>Spieler verwalten</h3>
+              <ul id="admin-player-list-game" class="player-list admin-player-list"></ul>
+              <p id="admin-player-game-error" class="error-msg"></p>
+            </div>
+            <div class="settings-section">
+              <h3>Raum-Einstellungen</h3>
+              <label class="checkbox-row" for="game-allow-join-during-game">
+                <input type="checkbox" id="game-allow-join-during-game" />
+                <span>Beitreten während des Spiels erlauben</span>
+              </label>
+              <button id="btn-update-room-game" class="btn btn-secondary" style="margin-top:0.75rem">💾 Speichern</button>
+              <p id="update-room-game-error" class="error-msg"></p>
+            </div>
+          </div>
+
+        </div>
       </div>
 
-      <button id="btn-leave-room-game" class="btn btn-danger">🚪 Raum verlassen</button>
+      <!-- Bottom Actions -->
+      <div class="game-bottom-actions">
+        <button id="btn-end-game" class="btn btn-secondary hidden">🏁 Spiel beenden</button>
+        <button id="btn-leave-room-game" class="btn btn-danger">🚪 Raum verlassen</button>
+      </div>
+
     </div>
   </div>
 

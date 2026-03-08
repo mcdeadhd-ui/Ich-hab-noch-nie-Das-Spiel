@@ -622,9 +622,50 @@ select option { background: var(--bg2); }
 .reaction-icon-pending { color: var(--text-muted); font-size: 1.1rem; }
 
 /* ============================================================
-   Admin Game Controls
+   Game Settings Panel
    ============================================================ */
-.admin-game-controls {
+.game-settings-wrap {
+  width: 100%;
+  max-width: 700px;
+}
+
+.game-settings-panel {
+  margin-top: 0.75rem;
+}
+
+.settings-section {
+  padding: 0.9rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-section:first-child {
+  padding-top: 0;
+}
+
+.settings-section:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.settings-section h3 {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.6rem;
+}
+
+.next-question-wrap {
+  margin-top: 1.25rem;
+  display: flex;
+  justify-content: center;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.game-bottom-actions {
   display: flex;
   gap: 1rem;
   flex-wrap: wrap;
