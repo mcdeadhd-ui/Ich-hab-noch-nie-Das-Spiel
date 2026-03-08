@@ -9,7 +9,7 @@ Erstelle einen Raum, lade Freunde ein und spielt gemeinsam – ganz ohne App-Ins
 
 - **Echtzeit-Multiplayer** via Socket.io – alle Spieler sehen Fragen und Reaktionen sofort
 - **Räume erstellen & beitreten** – öffentliche Raumliste, einfacher Beitritt per Name
-- **Zwei Alterskategorien** für die Fragen: `under12` (familienfreundlich) und `under16`
+- **Drei Alterskategorien** für die Fragen: `under12` (familienfreundlich), `under16` und `18plus`
 - **Admin-Steuerung**: Raumersteller kann das Spiel starten, Einstellungen ändern und Spieler rauswerfen
 - **Reaktionssystem**: Jeder Spieler gibt an, ob die aktuelle Aussage auf ihn zutrifft oder nicht
 - **Beitritt während einer laufenden Runde** (optional durch den Admin aktivierbar)
