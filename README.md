@@ -1,47 +1,72 @@
-# Ich hab noch nie – Das Spiel 🎉
+<div align="center">
 
-Eine browserbasierte Multiplayer-Web-App des beliebten Partyspiels **„Ich hab noch nie"**.  
-Erstelle einen Raum, lade Freunde ein und spielt gemeinsam – ganz ohne App-Installation.
+# 🎉 Ich hab noch nie – Das Spiel
 
----
+**Das beliebte Partyspiel direkt im Browser – ohne App, ohne Login, einfach losspielen.**
 
-## Features
+[![Node.js](https://img.shields.io/badge/Node.js-22+-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Socket.io](https://img.shields.io/badge/Socket.io-Echtzeit-010101?style=flat-square&logo=socket.io)](https://socket.io/)
+[![License: MIT](https://img.shields.io/badge/Lizenz-MIT-yellow?style=flat-square)](LICENSE)
 
-- **Echtzeit-Multiplayer** via Socket.io – alle Spieler sehen Fragen und Reaktionen sofort
-- **Räume erstellen & beitreten** – öffentliche Raumliste, einfacher Beitritt per Name
-- **Drei Alterskategorien** für die Fragen: `under12` (familienfreundlich), `under16` und `18plus`
-- **Admin-Steuerung**: Raumersteller kann das Spiel starten, Einstellungen ändern und Spieler rauswerfen
-- **Reaktionssystem**: Jeder Spieler gibt an, ob die aktuelle Aussage auf ihn zutrifft oder nicht
-- **Beitritt während einer laufenden Runde** (optional durch den Admin aktivierbar)
-- **Automatische Weiterschaltung** zur nächsten Frage, sobald alle Spieler reagiert haben
-- Läuft vollständig im Browser – kein Login, kein Account erforderlich
+</div>
 
 ---
 
-## Tech-Stack
+## 📖 Über das Projekt
 
-| Bereich   | Technologie              |
-|-----------|--------------------------|
-| Backend   | Node.js, Express         |
-| Echtzeit  | Socket.io                |
-| Frontend  | Vanilla JS, HTML, CSS    |
-| IDs       | UUID v4                  |
+Erstelle einen Raum, lade Freunde ein und spielt gemeinsam **„Ich hab noch nie"** – vollständig browserbasiert, in Echtzeit und mit drei Alterskategorien für jede Runde.
 
 ---
 
-## Installation & Start
+## ✨ Features
+
+| Feature | Beschreibung |
+|---|---|
+| ⚡ **Echtzeit-Multiplayer** | Alle Spieler sehen Fragen & Reaktionen sofort via Socket.io |
+| 🏠 **Räume erstellen & beitreten** | Öffentliche Raumliste, einfacher Beitritt per Name |
+| 🎯 **Drei Alterskategorien** | `👶 unter 12` · `🧑 unter 16` · `🔞 18+` |
+| 👑 **Admin-Steuerung** | Starten, Einstellungen ändern, Spieler rauswerfen |
+| 💬 **Reaktionssystem** | Jeder Spieler reagiert live auf jede Frage |
+| 🔓 **Beitritt während des Spiels** | Optional durch den Admin aktivierbar |
+| ⏭️ **Auto-Weiterschaltung** | Nächste Frage, sobald alle reagiert haben |
+| 🔄 **Session-Persistenz** | Seitenreload wirft dich nicht mehr aus dem Raum |
+
+---
+
+## 🛠️ Tech-Stack
+
+| Bereich | Technologie |
+|---|---|
+| 🖥️ Backend | Node.js · Express |
+| ⚡ Echtzeit | Socket.io |
+| 🎨 Frontend | Vanilla JS · HTML · CSS |
+| 🔑 IDs | UUID v4 |
+
+---
+
+## 🚀 Installation & Start
+
+### Voraussetzungen
+
+- [Node.js](https://nodejs.org/) v18 oder neuer
+
+### Setup
 
 ```bash
-# Abhängigkeiten installieren
+# 1. Repository klonen
+git clone https://github.com/mcdeadhd-ui/Ich-hab-noch-nie-Das-Spiel.git
+cd Ich-hab-noch-nie-Das-Spiel
+
+# 2. Abhängigkeiten installieren
 npm install
 
-# Server starten (Port 3000)
+# 3. Server starten
 npm start
 ```
 
-Anschließend die App im Browser unter [http://localhost:3000](http://localhost:3000) öffnen.
+➡️ App im Browser öffnen: [http://localhost:3000](http://localhost:3000)
 
-### Entwicklungsmodus
+### Entwicklungsmodus (Auto-Reload)
 
 ```bash
 npm run dev
@@ -49,30 +74,37 @@ npm run dev
 
 ---
 
-## Projektstruktur
+## 📁 Projektstruktur
 
 ```
-├── server.js          # Express- & Socket.io-Server, Spiellogik
-├── questions.json     # Fragenkatalog nach Kategorien geordnet
-├── public/
-│   ├── index.html     # Haupt-HTML der App
-│   ├── app.js         # Frontend-Logik (Screens, Socket-Events)
-│   └── style.css      # Styling
-└── package.json
+Ich-hab-noch-nie-Das-Spiel/
+├── 📄 server.js          # Express- & Socket.io-Server, gesamte Spiellogik
+├── 📋 questions.json     # Fragenkatalog (je 100 Fragen pro Kategorie)
+├── 📦 package.json
+└── 📂 public/
+    ├── 🌐 index.html     # Single-Page-App Markup
+    ├── ⚙️  app.js         # Frontend-Logik (Screens, Socket-Events, State)
+    └── 🎨 style.css      # Styling & Layout
 ```
 
 ---
 
-## Spielablauf
+## 🎮 Spielablauf
 
-1. Spieler öffnet die App und gibt seinen Namen ein.
-2. Einen neuen Raum erstellen oder einem bestehenden beitreten.
-3. Der Admin wählt die Fragenkategorie und startet das Spiel.
-4. Zu jeder Frage reagieren alle Spieler mit „Hab ich" oder „Hab ich nie".
-5. Nach allen Fragen wird das Spiel beendet – bereit für die nächste Runde!
+```
+ 1. 👤  Namen eingeben
+        ↓
+ 2. 🏠  Raum erstellen  oder  🚪 Raum beitreten
+        ↓
+ 3. 👑  Admin wählt Alterskategorie & startet das Spiel
+        ↓
+ 4. 💬  Alle Spieler reagieren auf jede Frage
+        ↓
+ 5. 🏁  Spiel beenden – bereit für die nächste Runde!
+```
 
 ---
 
-## Lizenz
+## 📜 Lizenz
 
-MIT
+Dieses Projekt steht unter der [MIT-Lizenz](LICENSE) – frei nutzbar, veränderbar und teilbar.
