@@ -32,6 +32,7 @@
     <header>
       <h1 id="lobby-room-name">Raum</h1>
       <div id="lobby-badge" class="badge"></div>
+      <p id="lobby-join-policy" class="subtitle"></p>
     </header>
 
     <div class="container lobby-layout">
@@ -66,6 +67,10 @@
               <option value="18plus">🔞 Ab 18 Jahre</option>
             </select>
           </div>
+          <label class="checkbox-row" for="admin-allow-join-during-game">
+            <input type="checkbox" id="admin-allow-join-during-game" />
+            <span>Das Beitreten erlauben während einer bereits laufenden Runde</span>
+          </label>
           <button id="btn-update-room" class="btn btn-secondary">💾 Speichern</button>
           <p id="update-room-error" class="error-msg"></p>
         </div>
@@ -86,6 +91,12 @@
           <p id="start-game-error" class="error-msg"></p>
         </div>
       </section>
+
+      <section class="card leave-room-card">
+        <h2>Raum verlassen</h2>
+        <p class="subtitle">Du kannst den Raum jederzeit verlassen.</p>
+        <button id="btn-leave-room-lobby" class="btn btn-danger">🚪 Raum verlassen</button>
+      </section>
     </div>
   </div>
 
@@ -94,6 +105,7 @@
     <header>
       <h1 id="game-room-name">Raum</h1>
       <div id="game-badge" class="badge"></div>
+      <p id="game-join-policy" class="subtitle"></p>
     </header>
 
     <div class="container game-layout">
@@ -117,6 +129,8 @@
         <button id="btn-next-question" class="btn btn-primary">➡️ Nächste Frage</button>
         <button id="btn-end-game" class="btn btn-secondary">🏁 Spiel beenden</button>
       </div>
+
+      <button id="btn-leave-room-game" class="btn btn-danger">🚪 Raum verlassen</button>
     </div>
   </div>
 
@@ -134,6 +148,7 @@
       <div id="player-finished-hint">
         <p>Warte auf den Admin…</p>
       </div>
+      <button id="btn-leave-room-finished" class="btn btn-danger">🚪 Raum verlassen</button>
     </div>
   </div>
 
@@ -204,7 +219,7 @@
   <!-- Toast notification -->
   <div id="toast" class="toast hidden"></div>
 
-  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

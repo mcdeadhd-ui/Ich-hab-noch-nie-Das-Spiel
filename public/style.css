@@ -229,6 +229,8 @@ header h1 {
 .tag-players { background: var(--secondary); color: #fff; }
 .tag-state { background: var(--accent); color: #000; }
 .tag-playing { background: var(--primary); color: #fff; }
+.tag-open { background: var(--success); color: #fff; }
+.tag-closed { background: var(--danger); color: #fff; }
 
 /* ============================================================
    Lobby Layout
@@ -324,6 +326,27 @@ header h1 {
   margin-bottom: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 0.75rem;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.checkbox-row input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--primary);
+}
+
+.leave-room-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .danger-zone h3 { color: var(--danger); }

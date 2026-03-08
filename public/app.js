@@ -2,7 +2,33 @@
    Ich hab noch nie – Frontend App
    ============================================================ */
 
-const socket = io();
+function detectSocketServerUrl() {
+  const url = new URL(window.location.href);
+
+  // Codespaces pattern, e.g. ...-5500.app.github.dev -> ...-3000.app.github.dev
+  const csMatch = url.hostname.match(/-(\d+)\.app\.github\.dev$/);
+  if (csMatch && csMatch[1] !== '3000') {
+    return `${url.protocol}//${url.hostname.replace(/-\d+\.app\.github\.dev$/, '-3000.app.github.dev')}`;
+  }
+
+  // Local dev fallback when UI is served from a non-backend port.
+  if ((url.hostname === 'localhost' || url.hostname === '127.0.0.1') && url.port && url.port !== '3000') {
+    return `${url.protocol}//${url.hostname}:3000`;
+  }
+
+  return url.origin;
+}
+
+const socket = typeof io === 'function'
+  ? io(detectSocketServerUrl())
+  : {
+    on() {},
+    emit(eventName, payload, callback) {
+      if (typeof callback === 'function') {
+        callback({ error: 'Keine Serververbindung. Bitte Seite neu laden.' });
+      }
+    },
+  };
 
 // ── State ───────────────────────────────────────────────────
 const state = {
@@ -44,6 +70,12 @@ function categoryLabel(cat) {
     : '🔞 Ab 18 Jahre';
 }
 
+function joinPolicyLabel(room) {
+  return room.allowJoinDuringGame
+    ? 'Das Beitreten ist waehrend einer bereits laufenden Runde erlaubt.'
+    : 'Das Beitreten ist waehrend einer bereits laufenden Runde geschlossen.';
+}
+
 // ── Room List (Landing) ──────────────────────────────────────
 socket.on('roomList', (rooms) => {
   renderRoomList(rooms);
@@ -58,7 +90,11 @@ function renderRoomList(rooms) {
   container.innerHTML = rooms.map((r) => {
     const stateLabel = r.state === 'lobby' ? 'Wartezimmer' : r.state === 'playing' ? 'Läuft' : 'Beendet';
     const stateClass = r.state === 'playing' ? 'tag-playing' : 'tag-state';
-    const joinDisabled = r.state !== 'lobby' ? 'disabled' : '';
+    const joinDisabled = !r.canJoin ? 'disabled' : '';
+    const joinLabel = r.state === 'playing' ? '⚡ Nachjoinen' : '🎮 Beitreten';
+    const joinHintTag = r.state === 'playing'
+      ? `<span class="room-tag ${r.allowJoinDuringGame ? 'tag-open' : 'tag-closed'}">${r.allowJoinDuringGame ? 'Offen' : 'Geschlossen'}</span>`
+      : '';
     return `
       <div class="room-card">
         <h3>${escHtml(r.name)}</h3>
@@ -66,12 +102,13 @@ function renderRoomList(rooms) {
           <span class="room-tag tag-category">${categoryLabel(r.category)}</span>
           <span class="room-tag tag-players">👥 ${r.playerCount} Spieler</span>
           <span class="room-tag ${stateClass}">${stateLabel}</span>
+          ${joinHintTag}
         </div>
         <button class="btn btn-primary join-btn"
           data-room-id="${escHtml(r.id)}"
           data-room-name="${escHtml(r.name)}"
           ${joinDisabled}>
-          🎮 Beitreten
+          ${joinLabel}
         </button>
       </div>`;
   }).join('');
@@ -158,8 +195,18 @@ function joinRoom() {
 
     state.roomId = res.roomId;
     state.playerId = res.playerId;
-    state.isAdmin = false;
+    state.isAdmin = res.room.adminPlayerId === res.playerId;
     state.room = res.room;
+    if (res.room.state === 'playing') {
+      renderGame(res.room);
+      showScreen('game');
+      return;
+    }
+    if (res.room.state === 'finished') {
+      renderFinished();
+      showScreen('finished');
+      return;
+    }
     enterLobby(res.room);
   });
 }
@@ -175,6 +222,7 @@ function enterLobby(room) {
 function renderLobby(room) {
   document.getElementById('lobby-room-name').textContent = room.name;
   document.getElementById('lobby-badge').textContent = categoryLabel(room.category);
+  document.getElementById('lobby-join-policy').textContent = joinPolicyLabel(room);
   document.getElementById('lobby-player-count').textContent = room.players.length;
 
   // Player list
@@ -199,6 +247,7 @@ function renderLobby(room) {
     adminPanel.classList.remove('hidden');
     document.getElementById('admin-room-name').value = room.name;
     document.getElementById('admin-category').value = room.category;
+    document.getElementById('admin-allow-join-during-game').checked = !!room.allowJoinDuringGame;
     renderAdminPlayerList(room);
   } else {
     adminPanel.classList.add('hidden');
@@ -255,12 +304,51 @@ function changeOwnName() {
 document.getElementById('btn-update-room').addEventListener('click', () => {
   const roomName = document.getElementById('admin-room-name').value.trim();
   const category = document.getElementById('admin-category').value;
-  socket.emit('updateRoom', { roomId: state.roomId, roomName, category }, (res) => {
-    if (res.error) return setError('update-room-error', res.error);
+  const allowJoinDuringGame = document.getElementById('admin-allow-join-during-game').checked;
+  socket.emit('updateRoom', { roomId: state.roomId, roomName, category, allowJoinDuringGame }, (res) => {
+    if (res.error) {
+      setError('update-room-error', res.error);
+      showToast(res.error, 'error');
+      return;
+    }
     clearError('update-room-error');
-    showToast('Raumeinstellungen gespeichert!', 'success');
+    if (res.room) {
+      state.room = res.room;
+      renderLobby(res.room);
+    }
+    showToast('Einstellung gespeichert: Beitritt waehrend laufender Runde aktualisiert.', 'success');
   });
 });
+
+function leaveRoom() {
+  if (!state.roomId) {
+    resetState();
+    showScreen('landing');
+    return;
+  }
+
+  const confirmText = state.isAdmin
+    ? 'Als Admin schliesst du den Raum fuer alle. Wirklich verlassen?'
+    : 'Raum wirklich verlassen?';
+
+  if (!confirm(confirmText)) return;
+
+  const wasAdmin = state.isAdmin;
+
+  socket.emit('leaveRoom', { roomId: state.roomId }, (res) => {
+    if (res && res.error) {
+      showToast(res.error, 'error');
+      return;
+    }
+    resetState();
+    showScreen('landing');
+    showToast(wasAdmin ? 'Raum wurde geschlossen.' : 'Du hast den Raum verlassen.', 'success');
+  });
+}
+
+document.getElementById('btn-leave-room-lobby').addEventListener('click', leaveRoom);
+document.getElementById('btn-leave-room-game').addEventListener('click', leaveRoom);
+document.getElementById('btn-leave-room-finished').addEventListener('click', leaveRoom);
 
 // Admin: delete room
 document.getElementById('btn-delete-room').addEventListener('click', () => {
@@ -363,6 +451,7 @@ function renderGame(room) {
 
   document.getElementById('game-room-name').textContent = room.name;
   document.getElementById('game-badge').textContent = categoryLabel(room.category);
+  document.getElementById('game-join-policy').textContent = joinPolicyLabel(room);
 
   const idx = room.currentQuestionIndex;
   const total = room.totalQuestions;

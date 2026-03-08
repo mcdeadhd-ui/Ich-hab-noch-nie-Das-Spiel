@@ -6,7 +6,12 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+  cors: {
+    origin: true,
+    methods: ['GET', 'POST'],
+  },
+});
 
 const questions = require('./questions.json');
 
@@ -23,13 +28,21 @@ app.use(express.static(path.join(__dirname, 'public')));
 // }
 const rooms = {};
 
+function isJoinDuringGameAllowed(room) {
+  return room.allowJoinDuringGame === true;
+}
+
 function getRoomList() {
   return Object.values(rooms).map((room) => ({
+    canJoin:
+      room.state === 'lobby' ||
+      (room.state === 'playing' && isJoinDuringGameAllowed(room)),
     id: room.id,
     name: room.name,
     category: room.category,
     playerCount: room.players.length,
     state: room.state,
+    allowJoinDuringGame: isJoinDuringGameAllowed(room),
   }));
 }
 
@@ -57,6 +70,7 @@ function sanitizeRoom(room) {
     adminPlayerId: room.adminPlayerId,
     players: room.players.map((p) => ({ id: p.id, name: p.name })),
     state: room.state,
+    allowJoinDuringGame: isJoinDuringGameAllowed(room),
     currentQuestion:
       room.state === 'playing'
         ? room.questionPool[room.currentQuestionIndex] || null
@@ -88,6 +102,7 @@ io.on('connection', (socket) => {
       adminSocketId: socket.id,
       players: [{ id: playerId, name: playerName.trim(), socketId: socket.id }],
       state: 'lobby',
+      allowJoinDuringGame: false,
       questionPool: buildQuestionPool(category),
       currentQuestionIndex: 0,
       reactions: {},
@@ -106,7 +121,13 @@ io.on('connection', (socket) => {
     const room = rooms[roomId];
     if (!room) return callback({ error: 'Raum nicht gefunden.' });
     if (!playerName || !playerName.trim()) return callback({ error: 'Spielername fehlt.' });
-    if (room.state !== 'lobby') return callback({ error: 'Das Spiel läuft bereits.' });
+    if (room.state === 'finished') return callback({ error: 'Diese Runde ist bereits beendet.' });
+    if (room.state === 'playing' && !isJoinDuringGameAllowed(room)) {
+      return callback({ error: 'Der Raum ist waehrend der laufenden Runde geschlossen.' });
+    }
+    if (!['lobby', 'playing'].includes(room.state)) {
+      return callback({ error: 'Beitritt aktuell nicht moeglich.' });
+    }
 
     const trimmedName = playerName.trim();
     const nameExists = room.players.some(
@@ -127,11 +148,22 @@ io.on('connection', (socket) => {
   });
 
   // Admin: update room settings (name, category)
-  socket.on('updateRoom', ({ roomId, roomName, category }, callback) => {
+  socket.on('updateRoom', ({ roomId, roomName, category, allowJoinDuringGame }, callback) => {
     const room = rooms[roomId];
     if (!room) return callback({ error: 'Raum nicht gefunden.' });
     if (room.adminSocketId !== socket.id) return callback({ error: 'Keine Berechtigung.' });
-    if (room.state !== 'lobby') return callback({ error: 'Einstellungen können nur im Warteraum geändert werden.' });
+
+    // Join policy can be changed at any time.
+    if (typeof allowJoinDuringGame === 'boolean') {
+      room.allowJoinDuringGame = allowJoinDuringGame === true;
+    }
+
+    // Name/category remain lobby-only to avoid changing active rounds.
+    if (room.state !== 'lobby') {
+      emitRoomUpdate(roomId);
+      io.emit('roomList', getRoomList());
+      return callback({ success: true, room: sanitizeRoom(room) });
+    }
 
     if (roomName && roomName.trim()) room.name = roomName.trim();
     if (category && questions[category]) {
@@ -314,6 +346,56 @@ io.on('connection', (socket) => {
     callback({ success: true, room: sanitizeRoom(room) });
   });
 
+  // Player/Admin: leave room manually
+  socket.on('leaveRoom', ({ roomId }, callback) => {
+    const actualRoomId = roomId || socket.data.roomId;
+    const playerId = socket.data.playerId;
+    if (!actualRoomId || !playerId) return callback({ error: 'Du bist in keinem Raum.' });
+
+    const room = rooms[actualRoomId];
+    if (!room) {
+      socket.data.roomId = null;
+      socket.data.playerId = null;
+      return callback({ success: true, alreadyClosed: true });
+    }
+
+    // Admin leaves: close room for everyone.
+    if (room.adminPlayerId === playerId) {
+      room.players.forEach((p) => {
+        const s = io.sockets.sockets.get(p.socketId);
+        if (s) {
+          if (s.id !== socket.id) {
+            s.emit('roomDeleted', {
+              roomId: actualRoomId,
+              message: 'Der Admin hat den Raum verlassen. Raum wurde geschlossen.',
+            });
+          }
+          s.leave(actualRoomId);
+          s.data.roomId = null;
+          s.data.playerId = null;
+        }
+      });
+
+      delete rooms[actualRoomId];
+      io.emit('roomList', getRoomList());
+      return callback({ success: true, roomClosed: true });
+    }
+
+    // Regular player leaves the room.
+    room.players = room.players.filter((p) => p.id !== playerId);
+    if (room.reactions && room.reactions[playerId]) {
+      delete room.reactions[playerId];
+    }
+
+    socket.leave(actualRoomId);
+    socket.data.roomId = null;
+    socket.data.playerId = null;
+
+    emitRoomUpdate(actualRoomId);
+    io.emit('roomList', getRoomList());
+    callback({ success: true });
+  });
+
   // Handle disconnect
   socket.on('disconnect', () => {
     const roomId = socket.data.roomId;
@@ -341,6 +423,9 @@ io.on('connection', (socket) => {
     } else {
       // Regular player disconnects: remove from room
       room.players = room.players.filter((p) => p.id !== playerId);
+      if (room.reactions && room.reactions[playerId]) {
+        delete room.reactions[playerId];
+      }
       emitRoomUpdate(roomId);
     }
 
