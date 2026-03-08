@@ -4,9 +4,13 @@
 
 **Das beliebte Partyspiel direkt im Browser – ohne App, ohne Login, einfach losspielen.**
 
-[![Node.js](https://img.shields.io/badge/Node.js-22+-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
-[![Socket.io](https://img.shields.io/badge/Socket.io-Echtzeit-010101?style=flat-square&logo=socket.io)](https://socket.io/)
-[![License: MIT](https://img.shields.io/badge/Lizenz-MIT-yellow?style=flat-square)](LICENSE)
+![Version](https://img.shields.io/badge/Version-1.0.0-blue)
+![Node.js](https://img.shields.io/badge/Node.js-339933?logo=node.js&logoColor=white)
+![Socket.io](https://img.shields.io/badge/Socket.io-010101?logo=socket.io&logoColor=white)
+![HTML5](https://img.shields.io/badge/HTML5-E34F26?logo=html5&logoColor=white)
+![CSS3](https://img.shields.io/badge/CSS3-1572B6?logo=css3&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black)
+![License](https://img.shields.io/badge/Lizenz-MIT-green)
 
 </div>
 
