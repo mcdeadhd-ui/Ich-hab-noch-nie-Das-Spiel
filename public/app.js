@@ -72,8 +72,8 @@ function categoryLabel(cat) {
 
 function joinPolicyLabel(room) {
   return room.allowJoinDuringGame
-    ? 'Das Beitreten ist waehrend einer bereits laufenden Runde erlaubt.'
-    : 'Das Beitreten ist waehrend einer bereits laufenden Runde geschlossen.';
+    ? 'Das Beitreten ist während einer bereits laufenden Runde möglich.'
+    : 'Das Beitreten ist während einer bereits laufenden Runde nicht möglich.';
 }
 
 // ── Room List (Landing) ──────────────────────────────────────
